@@ -366,18 +366,18 @@ def retrieve_context(query, model, chunk_embeddings, top_k=2):
 
 
 # --------------------------------------------------
-# LLM generation (free, local — via Ollama)
+# LLM generation (free — via Groq API)
 # --------------------------------------------------
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.2:1b"  # small, fast, free, runs fully locally
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.1-8b-instant"  # fast, free-tier friendly Groq model
 
 
 def generate_answer(query, retrieved_context):
     """
     Real generation step: pass retrieved context + the user's question
-    to a locally-running open-source LLM via Ollama (zero cost, no API
-    key, no internet required after the model is pulled once).
+    to Groq's hosted LLM API (free tier, no local install needed — works
+    when deployed online, not just on your own machine).
 
     If no relevant context was retrieved (e.g. a greeting or an
     off-topic question), the model is told there's no matching topic so
@@ -410,33 +410,47 @@ def generate_answer(query, retrieved_context):
             "topic. Keep it to 1-3 sentences."
         )
 
-    try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": f"{system_prompt}\n\nUser message: {query}\n\nAnswer:",
-                "stream": False,
-            },
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()["response"].strip()
+    # Prefer Streamlit secrets (used when deployed on Streamlit Cloud),
+    # fall back to a local environment variable (used when running locally)
+    api_key = st.secrets.get("GROQ_API_KEY", None) if hasattr(st, "secrets") else None
+    if not api_key:
+        api_key = os.environ.get("GROQ_API_KEY")
 
-    except requests.exceptions.ConnectionError:
-        # Ollama isn't running — graceful fallback
+    if not api_key:
         if retrieved_context:
             fallback = " ".join(retrieved_context)
             return (
                 fallback
                 + DISCLAIMER
-                + "\n\n*(Live AI generation unavailable — Ollama isn't running. "
-                "See SETUP.md to enable it.)*"
+                + "\n\n*(Live AI generation unavailable — no GROQ_API_KEY set. "
+                "See SETUP.md.)*"
             )
         return (
             "Hi! I can help with general women's health questions "
             "(periods, PMS, PCOS, and more). What would you like to know?"
         )
+
+    try:
+        response = requests.post(
+            GROQ_URL,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": query},
+                ],
+                "max_tokens": 300,
+                "temperature": 0.4,
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"].strip()
+
     except Exception as e:
         if retrieved_context:
             fallback = " ".join(retrieved_context)
