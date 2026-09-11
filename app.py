@@ -1,5 +1,9 @@
 import streamlit as st
+import os
+import requests
+import numpy as np
 from datetime import datetime, timedelta
+from sentence_transformers import SentenceTransformer
 
 # --------------------------------------------------
 # Page configuration
@@ -121,6 +125,61 @@ st.markdown(
             font-size: 13px;
             margin-top: 40px;
         }
+
+        .credit-badge {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #2b3550;
+            border-radius: 12px;
+            padding: 12px 18px;
+            margin-top: 30px;
+        }
+
+        .credit-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #7b5cf0;
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .credit-label {
+            color: #a9b2c9;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .credit-name {
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* Push chat input up to make room for the fixed credit footer */
+        [data-testid="stBottomBlockContainer"] {
+            padding-bottom: 34px;
+        }
+
+        .fixed-credit-footer {
+            position: fixed;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 700;
+            color: #000000;
+            font-size: 12px;
+            z-index: 999;
+        }
     </style>
     """,
     unsafe_allow_html=True,
@@ -185,81 +244,204 @@ for message in st.session_state.messages:
 question = st.chat_input("Ask a health question...")
 
 # --------------------------------------------------
-# Basic RAG-style knowledge
+# Knowledge base (chunked for retrieval)
 # --------------------------------------------------
 
-health_knowledge = {
-    "period cramps": (
-        "Period cramps are common and are often caused by contractions "
-        "of the uterus. Gentle activity, warmth, rest and adequate sleep "
-        "may help some people. If the pain is severe, suddenly worse, "
-        "or regularly interferes with daily activities, consider speaking "
-        "with a healthcare professional."
-    ),
+knowledge_chunks = [
+    {
+        "topic": "period cramps",
+        "text": (
+            "Period cramps are common and are often caused by contractions "
+            "of the uterus. Gentle activity, warmth, rest and adequate sleep "
+            "may help some people. If the pain is severe, suddenly worse, "
+            "or regularly interferes with daily activities, consider speaking "
+            "with a healthcare professional."
+        ),
+    },
+    {
+        "topic": "menstrual cycle",
+        "text": (
+            "Menstrual cycles can vary between people and from month to month, "
+            "typically ranging from 21 to 35 days. Tracking your cycle can help "
+            "you understand your personal pattern. Significant or persistent "
+            "changes should be discussed with a healthcare professional."
+        ),
+    },
+    {
+        "topic": "pregnancy",
+        "text": (
+            "Pregnancy symptoms can vary widely, including a missed period, "
+            "nausea, fatigue, and breast tenderness. A missed period can have "
+            "different causes, and a pregnancy test may help determine whether "
+            "pregnancy is possible. For pregnancy-related concerns, consult "
+            "a qualified healthcare professional."
+        ),
+    },
+    {
+        "topic": "PCOS",
+        "text": (
+            "PCOS (Polycystic Ovary Syndrome) is a common hormonal condition "
+            "that can affect menstrual cycles, ovulation, skin and hair growth. "
+            "Symptoms vary between people. A healthcare professional can "
+            "evaluate symptoms and provide appropriate diagnosis and treatment."
+        ),
+    },
+    {
+        "topic": "headache",
+        "text": (
+            "Headaches can have many causes including dehydration, stress, "
+            "lack of sleep, and hormonal changes around the menstrual cycle. "
+            "Rest, hydration and regular sleep may help some mild headaches. "
+            "Severe or unusual headaches should be evaluated by a healthcare "
+            "professional."
+        ),
+    },
+    {
+        "topic": "PMS",
+        "text": (
+            "Premenstrual syndrome (PMS) refers to physical and emotional "
+            "symptoms that can appear in the days before a period, such as "
+            "mood changes, bloating, fatigue, and food cravings, typically "
+            "easing once the period starts. Severe symptoms affecting daily "
+            "life are worth discussing with a healthcare professional."
+        ),
+    },
+    {
+        "topic": "menstrual hygiene",
+        "text": (
+            "Good menstrual hygiene includes changing pads, tampons, or "
+            "menstrual cups regularly (roughly every 4-8 hours), washing "
+            "hands before and after changing products, and using plain water "
+            "for cleaning rather than harsh soaps or douches."
+        ),
+    },
+]
 
-    "menstrual": (
-        "Menstrual cycles can vary between people and from month to month. "
-        "Tracking your cycle can help you understand your personal pattern. "
-        "Significant or persistent changes should be discussed with a "
-        "healthcare professional."
-    ),
-
-    "pregnancy": (
-        "Pregnancy symptoms can vary widely. A missed period can have "
-        "different causes, and a pregnancy test may help determine whether "
-        "pregnancy is possible. For pregnancy-related concerns, consult "
-        "a qualified healthcare professional."
-    ),
-
-    "pcos": (
-        "PCOS is a common hormonal condition that can affect menstrual "
-        "cycles, ovulation, skin and hair. Symptoms vary between people. "
-        "A healthcare professional can evaluate symptoms and provide "
-        "appropriate diagnosis and treatment."
-    ),
-
-    "headache": (
-        "Headaches can have many causes including dehydration, stress, "
-        "lack of sleep and other conditions. Rest, hydration and regular "
-        "sleep may help some mild headaches. Severe or unusual headaches "
-        "should be evaluated by a healthcare professional."
-    ),
-
-    "default": (
-        "I can provide general women's health information, but I cannot "
-        "diagnose medical conditions. Please consult a qualified healthcare "
-        "professional for personal medical advice, diagnosis or treatment."
-    ),
-}
+DISCLAIMER = (
+    "\n\n*This is general information, not a diagnosis. Please consult a "
+    "qualified healthcare professional for personal medical advice.*"
+)
 
 
-def retrieve_answer(query):
+# --------------------------------------------------
+# Embedding model (loaded once, cached)
+# --------------------------------------------------
+
+@st.cache_resource
+def load_embedding_model():
+    return SentenceTransformer("all-MiniLM-L6-v2")
+
+
+@st.cache_resource
+def build_knowledge_embeddings(_model):
+    texts = [chunk["text"] for chunk in knowledge_chunks]
+    embeddings = _model.encode(texts, normalize_embeddings=True)
+    return np.array(embeddings)
+
+
+SIMILARITY_THRESHOLD = 0.35  # below this, treat the query as off-topic/unmatched
+
+
+def retrieve_context(query, model, chunk_embeddings, top_k=2):
     """
-    Simple keyword-based retrieval.
-
-    This is the first RAG layer:
-    Query -> find relevant knowledge -> return context.
+    Real semantic retrieval: embed the query, compare against knowledge
+    chunk embeddings using cosine similarity, return the most relevant
+    chunks as context for the LLM. Returns an empty list if nothing is
+    actually relevant, instead of always forcing the top-k chunks.
     """
+    query_embedding = model.encode([query], normalize_embeddings=True)[0]
 
-    query_lower = query.lower()
+    # Cosine similarity (embeddings are already normalized, so this is a dot product)
+    similarities = chunk_embeddings @ query_embedding
 
-    # Check specific topics
-    if "cramp" in query_lower or "period pain" in query_lower:
-        return health_knowledge["period cramps"]
+    top_indices = np.argsort(similarities)[::-1][:top_k]
 
-    if "period" in query_lower or "menstrual" in query_lower:
-        return health_knowledge["menstrual"]
+    # Only keep chunks that actually pass the relevance threshold
+    retrieved = [
+        knowledge_chunks[i]["text"]
+        for i in top_indices
+        if similarities[i] >= SIMILARITY_THRESHOLD
+    ]
+    return retrieved
 
-    if "pregnan" in query_lower:
-        return health_knowledge["pregnancy"]
 
-    if "pcos" in query_lower:
-        return health_knowledge["pcos"]
+# --------------------------------------------------
+# LLM generation (free, local — via Ollama)
+# --------------------------------------------------
 
-    if "headache" in query_lower or "head pain" in query_lower:
-        return health_knowledge["headache"]
+OLLAMA_URL = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.2:1b"  # small, fast, free, runs fully locally
 
-    return health_knowledge["default"]
+
+def generate_answer(query, retrieved_context):
+    """
+    Real generation step: pass retrieved context + the user's question
+    to a locally-running open-source LLM via Ollama (zero cost, no API
+    key, no internet required after the model is pulled once).
+
+    If no relevant context was retrieved (e.g. a greeting or an
+    off-topic question), the model is told there's no matching topic so
+    it can respond naturally instead of forcing an unrelated health answer.
+    """
+    if retrieved_context:
+        context_text = "\n\n".join(retrieved_context)
+        system_prompt = (
+            "You are HerHealth AI, a friendly women's health information "
+            "assistant. Answer the user's question using ONLY the provided "
+            "context below. Keep the tone warm, clear, and non-diagnostic. "
+            "Never diagnose a condition or prescribe treatment. Always close "
+            "by encouraging the user to consult a healthcare professional "
+            "for personal medical concerns. Keep answers concise "
+            "(3-5 sentences).\n\n"
+            f"Context:\n{context_text}"
+        )
+    else:
+        system_prompt = (
+            "You are HerHealth AI, a friendly women's health information "
+            "assistant. The user's message does not match any topic in "
+            "your knowledge base (which currently covers: period cramps, "
+            "menstrual cycles, pregnancy, PCOS, headaches, PMS, and "
+            "menstrual hygiene). If it's a greeting or small talk, respond "
+            "warmly and briefly, and mention you can help with women's "
+            "health questions. If it's a real question outside your "
+            "knowledge base, say you don't have information on that "
+            "specific topic yet and suggest they consult a healthcare "
+            "professional. Do NOT invent an answer about an unrelated "
+            "topic. Keep it to 1-3 sentences."
+        )
+
+    try:
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": f"{system_prompt}\n\nUser message: {query}\n\nAnswer:",
+                "stream": False,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        return response.json()["response"].strip()
+
+    except requests.exceptions.ConnectionError:
+        # Ollama isn't running — graceful fallback
+        if retrieved_context:
+            fallback = " ".join(retrieved_context)
+            return (
+                fallback
+                + DISCLAIMER
+                + "\n\n*(Live AI generation unavailable — Ollama isn't running. "
+                "See SETUP.md to enable it.)*"
+            )
+        return (
+            "Hi! I can help with general women's health questions "
+            "(periods, PMS, PCOS, and more). What would you like to know?"
+        )
+    except Exception as e:
+        if retrieved_context:
+            fallback = " ".join(retrieved_context)
+            return fallback + DISCLAIMER + f"\n\n*(Note: generation unavailable — {str(e)})*"
+        return f"*(Note: generation unavailable — {str(e)})*"
 
 
 # --------------------------------------------------
@@ -276,8 +458,17 @@ if question:
         }
     )
 
-    # Retrieve relevant information
-    answer = retrieve_answer(question)
+    # Real RAG pipeline:
+    # 1. Load embedding model + precomputed knowledge base embeddings
+    embed_model = load_embedding_model()
+    chunk_embeddings = build_knowledge_embeddings(embed_model)
+
+    # 2. Retrieve the most semantically relevant chunks
+    with st.spinner("Thinking..."):
+        retrieved_context = retrieve_context(question, embed_model, chunk_embeddings)
+
+        # 3. Generate a natural-language answer grounded in that context
+        answer = generate_answer(question, retrieved_context)
 
     # Store AI response
     st.session_state.messages.append(
@@ -370,170 +561,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 # --------------------------------------------------
-# Women's Health Education
-# --------------------------------------------------
-
-st.markdown(
-    """
-    <div class="section-title">📚 Women's Health Education</div>
-    <div class="section-subtitle">
-        Explore simple educational information about periods, PMS, hygiene,
-        healthy habits, and when to seek care.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-education_topics = [
-    {
-        "emoji": "🩸",
-        "title": "Menstrual Cycle Basics",
-        "summary": "Understand the basic stages of the menstrual cycle.",
-        "content": (
-            "The menstrual cycle is typically counted from the first day of "
-            "one period to the first day of the next, and averages about "
-            "28 days, though anywhere from 21 to 35 days is common.\n\n"
-            "**The main phases are:**\n"
-            "- **Menstrual phase** – the uterine lining sheds (the period itself), usually lasting 3-7 days.\n"
-            "- **Follicular phase** – hormone levels rise and the body prepares an egg for release; this overlaps with the period and continues after it.\n"
-            "- **Ovulation** – an egg is released, generally around the midpoint of the cycle.\n"
-            "- **Luteal phase** – the time between ovulation and the next period, when PMS symptoms can occur.\n\n"
-            "Cycle length and symptoms can vary from person to person and month to month, and that variation is usually normal."
-        ),
-    },
-    {
-        "emoji": "🌸",
-        "title": "Period Pain",
-        "summary": "Learn about common cramps and when pain needs attention.",
-        "content": (
-            "Cramps (medically called dysmenorrhea) happen when the uterus "
-            "contracts to help shed its lining. Mild to moderate cramping "
-            "in the lower abdomen or back is common, especially in the "
-            "first couple of days of a period.\n\n"
-            "**Things that may offer comfort:**\n"
-            "- A heating pad or warm bath\n"
-            "- Gentle movement or stretching\n"
-            "- Adequate rest and hydration\n"
-            "- Over-the-counter pain relief, used as directed\n\n"
-            "**Consider speaking with a healthcare professional if:**\n"
-            "- Pain is severe or suddenly much worse than usual\n"
-            "- Pain regularly stops you from going about daily activities\n"
-            "- Pain doesn't improve with usual comfort measures\n"
-            "- You notice new symptoms alongside the pain"
-        ),
-    },
-    {
-        "emoji": "💗",
-        "title": "PMS",
-        "summary": "Learn about common symptoms before a period.",
-        "content": (
-            "Premenstrual syndrome (PMS) refers to physical and emotional "
-            "symptoms that can appear in the days or weeks before a period, "
-            "typically easing once the period starts.\n\n"
-            "**Common symptoms include:**\n"
-            "- Mood changes, irritability, or feeling low\n"
-            "- Bloating or breast tenderness\n"
-            "- Fatigue or trouble sleeping\n"
-            "- Food cravings\n"
-            "- Headaches\n\n"
-            "Keeping a simple symptom diary can help you notice your own "
-            "patterns. If symptoms feel severe or significantly affect your "
-            "daily life or relationships, it's worth discussing with a "
-            "healthcare professional, as more intensive support is available."
-        ),
-    },
-    {
-        "emoji": "🧼",
-        "title": "Menstrual Hygiene",
-        "summary": "Simple habits for comfortable period management.",
-        "content": (
-            "Good menstrual hygiene supports comfort and helps reduce the "
-            "risk of infection.\n\n"
-            "**General guidance:**\n"
-            "- Change pads, tampons, or empty a menstrual cup regularly, "
-            "generally every 4-8 hours depending on the product and flow\n"
-            "- Wash hands before and after changing period products\n"
-            "- Rinse or wash the genital area with plain water during a "
-            "shower; harsh soaps or douches aren't necessary and can cause irritation\n"
-            "- Choose breathable, cotton underwear where possible\n"
-            "- Follow the product instructions for tampons or cups, and be "
-            "aware of guidance around toxic shock syndrome (TSS) if using tampons\n\n"
-            "Everyone's flow and preferences differ, so it's fine to try "
-            "different products to see what feels most comfortable."
-        ),
-    },
-    {
-        "emoji": "🥗",
-        "title": "Healthy Habits",
-        "summary": "Everyday habits that support general wellbeing.",
-        "content": (
-            "A few everyday habits can support overall menstrual and general "
-            "health, though they aren't a substitute for medical care when needed.\n\n"
-            "**Habits that may help:**\n"
-            "- Eating a balanced diet with iron-rich foods, especially during and after your period\n"
-            "- Staying hydrated\n"
-            "- Getting regular, moderate exercise\n"
-            "- Prioritizing consistent, adequate sleep\n"
-            "- Managing stress through activities that work for you\n"
-            "- Tracking your cycle to understand your own patterns\n\n"
-            "Small, sustainable habits tend to be more helpful over time than "
-            "drastic short-term changes."
-        ),
-    },
-    {
-        "emoji": "🚨",
-        "title": "When to Seek Medical Care",
-        "summary": "Know when symptoms should not simply be ignored.",
-        "content": (
-            "Most period-related symptoms are common and manageable, but "
-            "some signs are worth discussing with a healthcare professional "
-            "rather than managing alone.\n\n"
-            "**Consider seeking care if you experience:**\n"
-            "- Very heavy bleeding (soaking through a pad or tampon every hour for several hours)\n"
-            "- Periods lasting longer than about 7 days\n"
-            "- Severe pain that isn't relieved by usual measures\n"
-            "- Bleeding between periods or after sex\n"
-            "- Periods that suddenly become irregular after being regular\n"
-            "- Missed periods when pregnancy is possible\n"
-            "- Symptoms of infection, such as unusual discharge, odor, fever, or itching\n"
-            "- Any symptom that worries you or feels different from your normal pattern\n\n"
-            "When in doubt, it's always reasonable to check in with a doctor, "
-            "nurse, or other qualified healthcare provider — they can properly "
-            "evaluate your specific situation."
-        ),
-    },
-]
-
-for topic in education_topics:
-    with st.expander(f"{topic['emoji']}  **{topic['title']}** — {topic['summary']}"):
-        st.markdown(topic["content"])
-
-
-# --------------------------------------------------
-# Information section
+# Developer credit (fixed at very bottom, below chat input)
 # --------------------------------------------------
 
 st.markdown(
     """
-    <div class="info-box">
-        <strong>About HerHealth AI</strong><br>
-        This application provides general women's health information.
-        It is not a replacement for professional medical advice.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# --------------------------------------------------
-# Footer
-# --------------------------------------------------
-
-st.markdown(
-    """
-    <div class="footer">
-        HerHealth AI · Women's Health Companion
+    <div class="fixed-credit-footer">
+        Created by Nikita Chougule
     </div>
     """,
     unsafe_allow_html=True,
