@@ -269,19 +269,13 @@ st.markdown(
         }
 
         /* ---------- Footer ---------- */
-        .footer-spacer {
-            height: 60px;
+        .credit-footer-wrap {
+            display: flex;
+            justify-content: center;
+            margin-top: 18px;
         }
 
-        [data-testid="stBottomBlockContainer"] {
-            padding-bottom: 34px;
-        }
-
-        .fixed-credit-footer {
-            position: fixed;
-            bottom: 8px;
-            left: 50%;
-            transform: translateX(-50%);
+        .credit-badge {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -290,7 +284,6 @@ st.markdown(
             border: 1px solid rgba(200,190,220,0.5);
             padding: 7px 16px 7px 7px;
             border-radius: 999px;
-            z-index: 999;
             box-shadow: 0 6px 18px rgba(120,90,150,0.16);
         }
 
@@ -840,22 +833,23 @@ st.markdown(
         health conditions, travel, and other factors. This tool does not
         provide medical advice or contraceptive guidance.
     </div>
-    <div class="footer-spacer"></div>
     """,
     unsafe_allow_html=True,
 )
 
 # --------------------------------------------------
-# Developer credit (fixed at very bottom, below chat input)
+# Developer credit (sits in normal page flow, below the tracker)
 # --------------------------------------------------
 
 st.markdown(
     """
-    <div class="fixed-credit-footer">
-        <div class="credit-avatar">NC</div>
-        <div class="credit-text">
-            <div class="credit-eyebrow">Developed by</div>
-            <div class="credit-name">Nikita Chougule</div>
+    <div class="credit-footer-wrap">
+        <div class="credit-badge">
+            <div class="credit-avatar">NC</div>
+            <div class="credit-text">
+                <div class="credit-eyebrow">Developed by</div>
+                <div class="credit-name">Nikita Chougule</div>
+            </div>
         </div>
     </div>
     """,
