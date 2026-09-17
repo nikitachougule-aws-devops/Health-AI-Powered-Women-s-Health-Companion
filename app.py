@@ -284,16 +284,49 @@ st.markdown(
             transform: translateX(-50%);
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(20,16,28,0.85);
-            backdrop-filter: blur(8px);
-            color: #fff;
-            font-size: 11.5px;
-            font-weight: 600;
-            padding: 6px 14px;
+            gap: 10px;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(200,190,220,0.5);
+            padding: 7px 16px 7px 7px;
             border-radius: 999px;
             z-index: 999;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+            box-shadow: 0 6px 18px rgba(120,90,150,0.16);
+        }
+
+        .credit-avatar {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7b5cf0, #b6539b);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .credit-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+        }
+
+        .credit-eyebrow {
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: #9c8fab;
+        }
+
+        .credit-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #362c40;
         }
 
         /* ---------- Misc input polish ---------- */
@@ -333,11 +366,6 @@ st.markdown(
     <div class="hero">
         <div class="hero-badge">🌸 AI Women's Health Companion</div>
         <div class="hero-title">HerHealth AI</div>
-        <div class="hero-subtitle">Ask, track, understand — all in one place</div>
-        <div class="hero-description">
-            Get warm, grounded answers to everyday health questions and keep
-            an eye on your cycle, powered by AI.
-        </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -824,7 +852,11 @@ st.markdown(
 st.markdown(
     """
     <div class="fixed-credit-footer">
-        <span>🌸</span> Created by Nikita Chougule
+        <div class="credit-avatar">NC</div>
+        <div class="credit-text">
+            <div class="credit-eyebrow">Developed by</div>
+            <div class="credit-name">Nikita Chougule</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
