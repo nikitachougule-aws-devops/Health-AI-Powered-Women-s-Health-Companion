@@ -16,170 +16,309 @@ st.set_page_config(
 )
 
 # --------------------------------------------------
-# Custom styling
+# Custom styling — glassmorphic, gradient-mesh redesign
 # --------------------------------------------------
 
 st.markdown(
     """
     <style>
-        .main {
-            background: #fff9fc;
+
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Manrope', sans-serif;
         }
 
+        /* ---------- Animated gradient-mesh background ---------- */
+        .stApp {
+            background: radial-gradient(circle at 15% 20%, #ffe0ef 0%, transparent 45%),
+                        radial-gradient(circle at 85% 15%, #e3d9ff 0%, transparent 45%),
+                        radial-gradient(circle at 50% 90%, #d9ecff 0%, transparent 50%),
+                        linear-gradient(160deg, #fdf7fb 0%, #f6f3fc 55%, #f2f8fb 100%);
+            background-attachment: fixed;
+        }
+
+        /* ---------- Hero ---------- */
         .hero {
             text-align: center;
-            padding: 35px 10px 20px 10px;
+            padding: 46px 14px 26px 14px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.65);
+            border: 1px solid rgba(182,122,176,0.25);
+            backdrop-filter: blur(10px);
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #8d5fa8;
+            margin-bottom: 18px;
+            box-shadow: 0 4px 18px rgba(150,100,180,0.12);
         }
 
         .hero-title {
-            font-size: 46px;
-            font-weight: 700;
-            color: #303044;
-            margin-bottom: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 50px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(100deg, #6d3fa0 0%, #b6539b 45%, #e08a6f 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 6px;
+            line-height: 1.1;
         }
 
         .hero-subtitle {
-            font-size: 22px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 19px;
             font-weight: 600;
-            color: #6d466d;
+            color: #4b3b57;
             margin-bottom: 10px;
         }
 
         .hero-description {
-            font-size: 16px;
-            color: #666;
-        }
-
-        .chat-user {
-            background: #f6e7ef;
-            border: 1px solid #e5ccda;
-            border-radius: 14px;
-            padding: 14px 18px;
-            margin: 12px 0;
-        }
-
-        .chat-ai {
-            background: #eee8f7;
-            border: 1px solid #d9cdea;
-            border-radius: 14px;
-            padding: 14px 18px;
-            margin: 12px 0;
-        }
-
-        .label {
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: #51445c;
-        }
-
-        .info-box {
-            background: #faf5fb;
-            border-left: 4px solid #b67ab0;
-            padding: 14px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-
-        .section-title {
-            font-size: 26px;
-            font-weight: 700;
-            color: #303044;
-            margin-top: 40px;
-            margin-bottom: 4px;
-        }
-
-        .section-subtitle {
             font-size: 15px;
-            color: #666;
-            margin-bottom: 18px;
+            color: #7a7086;
+            max-width: 440px;
+            margin: 0 auto;
         }
 
-        .result-box {
-            background: linear-gradient(90deg, #b67ab0, #8d6fb8);
-            color: white;
-            padding: 18px;
-            border-radius: 12px;
-            margin-top: 16px;
+        /* ---------- Glass panel helper ---------- */
+        .glass-panel {
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(120,90,150,0.10);
+            padding: 22px 24px;
         }
 
-        .result-box .result-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .result-box .result-date {
-            font-size: 22px;
-            font-weight: 700;
-            margin-top: 4px;
-        }
-
-        .disclaimer-text {
-            font-size: 13px;
-            color: #888;
-            margin-top: 10px;
-        }
-
-        .footer {
-            text-align: center;
-            color: #888;
-            font-size: 13px;
-            margin-top: 40px;
-        }
-
-        .credit-badge {
+        /* ---------- Chat bubbles ---------- */
+        .chat-row {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #2b3550;
-            border-radius: 12px;
-            padding: 12px 18px;
-            margin-top: 30px;
+            gap: 10px;
+            margin: 14px 0;
+            align-items: flex-end;
         }
 
-        .credit-avatar {
-            width: 40px;
-            height: 40px;
+        .chat-row.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
             border-radius: 50%;
-            background: #7b5cf0;
-            color: white;
-            font-weight: 700;
-            font-size: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .credit-label {
-            color: #a9b2c9;
-            font-size: 11px;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-
-        .credit-name {
-            color: #ffffff;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
+            color: white;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
         }
 
-        /* Push chat input up to make room for the fixed credit footer */
+        .avatar.user-avatar {
+            background: linear-gradient(135deg, #7b5cf0, #b6539b);
+        }
+
+        .avatar.ai-avatar {
+            background: linear-gradient(135deg, #6dc9c0, #8d6fb8);
+        }
+
+        .chat-user {
+            background: linear-gradient(135deg, #7b5cf0, #b6539b);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 17px;
+            max-width: 78%;
+            box-shadow: 0 6px 18px rgba(123,92,240,0.22);
+            font-size: 14.5px;
+            line-height: 1.5;
+        }
+
+        .chat-ai {
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(200,190,220,0.5);
+            border-radius: 18px 18px 18px 4px;
+            padding: 12px 17px;
+            max-width: 78%;
+            box-shadow: 0 6px 18px rgba(120,90,150,0.08);
+            font-size: 14.5px;
+            line-height: 1.5;
+            color: #3a2f42;
+        }
+
+        .bubble-label {
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.75;
+            margin-bottom: 4px;
+        }
+
+        /* ---------- Section headers ---------- */
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 25px;
+            font-weight: 700;
+            color: #362c40;
+            margin-top: 46px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-subtitle {
+            font-size: 14px;
+            color: #83788e;
+            margin-bottom: 20px;
+        }
+
+        /* ---------- Result cards ---------- */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.8);
+            border-radius: 16px;
+            padding: 16px 12px;
+            text-align: center;
+            box-shadow: 0 6px 20px rgba(120,90,150,0.08);
+        }
+
+        .stat-card .stat-icon {
+            font-size: 22px;
+            margin-bottom: 6px;
+        }
+
+        .stat-card .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #9c8fab;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .stat-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: #3a2f42;
+        }
+
+        .stat-card.highlight {
+            background: linear-gradient(145deg, #7b5cf0, #b6539b);
+            border: none;
+        }
+
+        .stat-card.highlight .stat-label,
+        .stat-card.highlight .stat-value {
+            color: white;
+        }
+
+        /* ---------- Cycle wheel ---------- */
+        .wheel-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0 4px 0;
+        }
+
+        .phase-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 14px;
+            font-size: 12.5px;
+            color: #695e75;
+        }
+
+        .phase-legend .dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .disclaimer-text {
+            font-size: 12.5px;
+            color: #948b9e;
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+
+        /* ---------- Footer ---------- */
+        .footer-spacer {
+            height: 60px;
+        }
+
         [data-testid="stBottomBlockContainer"] {
             padding-bottom: 34px;
         }
 
         .fixed-credit-footer {
             position: fixed;
-            bottom: 6px;
+            bottom: 8px;
             left: 50%;
             transform: translateX(-50%);
-            font-weight: 700;
-            color: #000000;
-            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(20,16,28,0.85);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            font-size: 11.5px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 999px;
             z-index: 999;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.18);
         }
+
+        /* ---------- Misc input polish ---------- */
+        div[data-testid="stDateInput"] label, div[data-testid="stNumberInput"] label {
+            font-weight: 600 !important;
+            color: #4b3b57 !important;
+            font-size: 13.5px !important;
+        }
+
+        .stButton > button {
+            background: linear-gradient(135deg, #7b5cf0, #b6539b) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-weight: 700 !important;
+            padding: 10px 0 !important;
+            box-shadow: 0 8px 22px rgba(123,92,240,0.28) !important;
+            transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        }
+
+        .stButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 26px rgba(123,92,240,0.36) !important;
+        }
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -192,10 +331,12 @@ st.markdown(
 st.markdown(
     """
     <div class="hero">
-        <div class="hero-title">🌸 HerHealth AI</div>
-        <div class="hero-subtitle">Women's Health Companion</div>
+        <div class="hero-badge">🌸 AI Women's Health Companion</div>
+        <div class="hero-title">HerHealth AI</div>
+        <div class="hero-subtitle">Ask, track, understand — all in one place</div>
         <div class="hero-description">
-            A simple AI-powered women's health information assistant.
+            Get warm, grounded answers to everyday health questions and keep
+            an eye on your cycle, powered by AI.
         </div>
     </div>
     """,
@@ -213,29 +354,46 @@ if "messages" not in st.session_state:
 # Chat history
 # --------------------------------------------------
 
-for message in st.session_state.messages:
+if st.session_state.messages:
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
 
-    if message["role"] == "user":
-        st.markdown(
-            f"""
-            <div class="chat-user">
-                <div class="label">You</div>
-                {message["content"]}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    for message in st.session_state.messages:
 
-    else:
-        st.markdown(
-            f"""
-            <div class="chat-ai">
-                <div class="label">HerHealth AI</div>
-                {message["content"]}
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        if message["role"] == "user":
+            st.markdown(
+                f"""
+                <div class="chat-row user">
+                    <div class="avatar user-avatar">You</div>
+                    <div class="chat-user">{message["content"]}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        else:
+            st.markdown(
+                f"""
+                <div class="chat-row ai">
+                    <div class="avatar ai-avatar">🌸</div>
+                    <div class="chat-ai">
+                        <div class="bubble-label">HerHealth AI</div>
+                        {message["content"]}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+else:
+    st.markdown(
+        """
+        <div class="glass-panel" style="text-align:center; color:#8b7f97;">
+            💬 Ask me anything about periods, PMS, PCOS, pregnancy, or menstrual health.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # --------------------------------------------------
 # Question input
@@ -504,25 +662,27 @@ st.markdown(
     """
     <div class="section-title">🌷 Cycle Tracker</div>
     <div class="section-subtitle">
-        Enter the first day of your most recent period to get an estimated
-        next period date.
+        Enter the first day of your most recent period to see your estimated
+        cycle map — next period, ovulation, and fertile window.
     </div>
     """,
     unsafe_allow_html=True,
 )
 
+st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+
 col1, col2 = st.columns(2)
 
 with col1:
     last_period_date = st.date_input(
-        "Last Period Date",
+        "Last period date",
         value=None,
         format="DD-MM-YYYY",
     )
 
 with col2:
     cycle_length = st.number_input(
-        "Cycle Length",
+        "Cycle length (days)",
         min_value=15,
         max_value=45,
         value=28,
@@ -530,11 +690,17 @@ with col2:
         help="Average number of days between periods (typically 21-35 days).",
     )
 
-if st.button("Calculate Estimated Date", use_container_width=True):
+calculate = st.button("✨ Map my cycle", use_container_width=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+if calculate:
     if last_period_date is None:
         st.warning("Please enter the first day of your most recent period.")
     else:
-        next_period_date = last_period_date + timedelta(days=int(cycle_length))
+        cycle_length = int(cycle_length)
+        next_period_date = last_period_date + timedelta(days=cycle_length)
+        period_length = 5  # assumed average period length for wheel shading
 
         # Ovulation is typically estimated ~14 days before the next period
         estimated_ovulation = next_period_date - timedelta(days=14)
@@ -543,11 +709,74 @@ if st.button("Calculate Estimated Date", use_container_width=True):
         fertile_start = estimated_ovulation - timedelta(days=5)
         fertile_end = estimated_ovulation + timedelta(days=1)
 
+        today = datetime.now().date()
+        days_since_start = (today - last_period_date).days % cycle_length
+        day_in_cycle = days_since_start + 1
+
+        # Determine current phase label
+        ov_day = (estimated_ovulation - last_period_date).days % cycle_length
+        fert_start_day = (fertile_start - last_period_date).days % cycle_length
+        fert_end_day = (fertile_end - last_period_date).days % cycle_length
+
+        if 0 <= days_since_start < period_length:
+            phase_label, phase_color = "Menstrual phase", "#e08a6f"
+        elif fert_start_day <= days_since_start <= fert_end_day:
+            phase_label, phase_color = "Fertile window", "#6dc9c0"
+        elif days_since_start < ov_day:
+            phase_label, phase_color = "Follicular phase", "#f2c14e"
+        else:
+            phase_label, phase_color = "Luteal phase", "#8d6fb8"
+
+        # ---------------- Cycle wheel (SVG donut) ----------------
+        import math
+
+        def angle_for_day(d):
+            return (d / cycle_length) * 360 - 90
+
+        def polar_to_xy(cx, cy, r, angle_deg):
+            a = math.radians(angle_deg)
+            return cx + r * math.cos(a), cy + r * math.sin(a)
+
+        def arc_path(cx, cy, r, start_day, end_day, total):
+            start_angle = angle_for_day(start_day)
+            end_angle = angle_for_day(end_day)
+            x1, y1 = polar_to_xy(cx, cy, r, start_angle)
+            x2, y2 = polar_to_xy(cx, cy, r, end_angle)
+            sweep_days = (end_day - start_day) % total
+            large_arc = 1 if sweep_days > total / 2 else 0
+            return f"M {x1:.1f} {y1:.1f} A {r} {r} 0 {large_arc} 1 {x2:.1f} {y2:.1f}"
+
+        cx, cy, r = 110, 110, 82
+        marker_angle = angle_for_day(days_since_start)
+        marker_x, marker_y = polar_to_xy(cx, cy, r, marker_angle)
+
+        svg = f"""
+        <svg width="220" height="220" viewBox="0 0 220 220">
+            <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#f0e8f4" stroke-width="16"/>
+            <path d="{arc_path(cx, cy, r, 0, period_length, cycle_length)}"
+                  fill="none" stroke="#e08a6f" stroke-width="16" stroke-linecap="round"/>
+            <path d="{arc_path(cx, cy, r, fert_start_day, fert_end_day, cycle_length)}"
+                  fill="none" stroke="#6dc9c0" stroke-width="16" stroke-linecap="round"/>
+            <circle cx="{marker_x:.1f}" cy="{marker_y:.1f}" r="9" fill="{phase_color}" stroke="white" stroke-width="3"/>
+            <text x="{cx}" y="{cy-6}" text-anchor="middle" font-family="Outfit, sans-serif"
+                  font-size="26" font-weight="800" fill="#362c40">Day {day_in_cycle}</text>
+            <text x="{cx}" y="{cy+16}" text-anchor="middle" font-family="Manrope, sans-serif"
+                  font-size="12" fill="#83788e">of {cycle_length}-day cycle</text>
+        </svg>
+        """
+
+        st.markdown(f'<div class="wheel-wrap">{svg}</div>', unsafe_allow_html=True)
+
         st.markdown(
             f"""
-            <div class="result-box">
-                <div class="result-label">Estimated Next Period</div>
-                <div class="result-date">{next_period_date.strftime('%d %B %Y')}</div>
+            <div style="text-align:center; font-weight:700; color:{phase_color}; font-family:'Outfit', sans-serif; font-size:16px;">
+                {phase_label}
+            </div>
+            <div class="phase-legend">
+                <span><span class="dot" style="background:#e08a6f;"></span>Period</span>
+                <span><span class="dot" style="background:#f2c14e;"></span>Follicular</span>
+                <span><span class="dot" style="background:#6dc9c0;"></span>Fertile window</span>
+                <span><span class="dot" style="background:#8d6fb8;"></span>Luteal</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -555,10 +784,22 @@ if st.button("Calculate Estimated Date", use_container_width=True):
 
         st.markdown(
             f"""
-            <div class="info-box">
-                <strong>Estimated Ovulation:</strong> {estimated_ovulation.strftime('%d %B %Y')}<br>
-                <strong>Estimated Fertile Window:</strong>
-                {fertile_start.strftime('%d %B')} – {fertile_end.strftime('%d %B %Y')}
+            <div class="stat-grid">
+                <div class="stat-card highlight">
+                    <div class="stat-icon">🩸</div>
+                    <div class="stat-label">Next period</div>
+                    <div class="stat-value">{next_period_date.strftime('%d %b %Y')}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🥚</div>
+                    <div class="stat-label">Ovulation</div>
+                    <div class="stat-value">{estimated_ovulation.strftime('%d %b %Y')}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🌱</div>
+                    <div class="stat-label">Fertile window</div>
+                    <div class="stat-value">{fertile_start.strftime('%d %b')} – {fertile_end.strftime('%d %b')}</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -571,6 +812,7 @@ st.markdown(
         health conditions, travel, and other factors. This tool does not
         provide medical advice or contraceptive guidance.
     </div>
+    <div class="footer-spacer"></div>
     """,
     unsafe_allow_html=True,
 )
@@ -582,7 +824,7 @@ st.markdown(
 st.markdown(
     """
     <div class="fixed-credit-footer">
-        Created by Nikita Chougule
+        <span>🌸</span> Created by Nikita Chougule
     </div>
     """,
     unsafe_allow_html=True,
