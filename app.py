@@ -406,15 +406,6 @@ if st.session_state.messages:
             )
 
     st.markdown("</div>", unsafe_allow_html=True)
-else:
-    st.markdown(
-        """
-        <div class="glass-panel" style="text-align:center; color:#8b7f97;">
-            💬 Ask me anything about periods, PMS, PCOS, pregnancy, or menstrual health.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 # --------------------------------------------------
 # Question input
